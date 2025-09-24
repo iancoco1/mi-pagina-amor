@@ -31,8 +31,8 @@ const phrases = [
     "MI CHINITA HERMOSA",
     "Eres preciosa mi amor",
     "FELIZ PRIMER AÑO MI AMOR",
-    "Me encantas demaciado mi vida",
-    "te amo mas que a nada mi amor"
+    "Me encantas demasiado mi vida",
+    "te amo más que a nada mi amor"
 ];
 
 const images = [
@@ -292,20 +292,18 @@ function animate() {
     }
 }
 
-
+// -------------------
+// Eventos PC (mouse)
+// -------------------
 canvas.addEventListener('wheel', (event) => {
     event.preventDefault();
-
     const scaleAmount = 0.1;
-
     if (event.deltaY < 0) {
         zoomLevel += scaleAmount;
     } else {
         zoomLevel -= scaleAmount;
     }
-
     zoomLevel = Math.max(0.1, Math.min(zoomLevel, 5));
-
 }, { passive: false });
 
 canvas.addEventListener('mousedown', (e) => {
@@ -317,13 +315,10 @@ canvas.addEventListener('mousedown', (e) => {
 
 canvas.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
-
     const dx = e.clientX - lastMouseX;
     const dy = e.clientY - lastMouseY;
-
     cameraX -= dx / zoomLevel;
     cameraY -= dy / zoomLevel;
-
     lastMouseX = e.clientX;
     lastMouseY = e.clientY;
 });
@@ -338,6 +333,47 @@ canvas.addEventListener('mouseleave', () => {
     canvas.style.cursor = 'default';
 });
 
+// -------------------
+// Eventos iPhone/Touch
+// -------------------
+let touchStartDist = 0;
+
+canvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+        isDragging = true;
+        lastMouseX = e.touches[0].clientX;
+        lastMouseY = e.touches[0].clientY;
+    } else if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        touchStartDist = Math.sqrt(dx * dx + dy * dy);
+    }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 1 && isDragging) {
+        const dx = e.touches[0].clientX - lastMouseX;
+        const dy = e.touches[0].clientY - lastMouseY;
+        cameraX -= dx / zoomLevel;
+        cameraY -= dy / zoomLevel;
+        lastMouseX = e.touches[0].clientX;
+        lastMouseY = e.touches[0].clientY;
+    } else if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const newDist = Math.sqrt(dx * dx + dy * dy);
+        if (touchStartDist > 0) {
+            const scaleAmount = (newDist - touchStartDist) * 0.005;
+            zoomLevel = Math.max(0.1, Math.min(zoomLevel + scaleAmount, 5));
+        }
+        touchStartDist = newDist;
+    }
+}, { passive: false });
+
+canvas.addEventListener('touchend', () => {
+    isDragging = false;
+    touchStartDist = 0;
+});
 
 window.addEventListener('resize', resizeCanvas);
 
