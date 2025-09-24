@@ -27,11 +27,12 @@ const shootingStars = [];
 const fallingElements = [];
 
 const phrases = [
-    "Te Amo",
-    "My love",
-    "Eres preciosa",
-    "Me encantas",
-    "Amor de mi vida"
+    "Te Amo Wendy",
+    "MI CHINITA HERMOSA",
+    "Eres preciosa mi amor",
+    "FELIZ PRIMER AÑO MI AMOR",
+    "Me encantas demaciado mi vida",
+    "te amo mas que a nada mi amor"
 ];
 
 const images = [
