@@ -115,7 +115,7 @@ function createShootingStar() {
         x: startX,
         y: startY,
         length: Math.random() * 300 + 100,
-        speed: Math.random() * 10 + 6,
+        speed: Math.random() * 4 + 2, // más lento
         angle: Math.PI / 4,
         opacity: 1
     });
@@ -167,10 +167,9 @@ function createFallingElement() {
     const worldPlaneWidth = (canvas.width / focalLength) * maxZ;
     const worldPlaneHeight = (canvas.height / focalLength) * maxZ;
 
-    const bufferFactor = 1.1; // 10% de buffer
+    const bufferFactor = 1.1; 
     const spawnRangeX = worldPlaneWidth * bufferFactor;
     const spawnRangeY = worldPlaneHeight * bufferFactor;
-
 
     const initialX = ((Math.random() + Math.random() - 1) * 0.5) * spawnRangeX;
     const initialY = ((Math.random() + Math.random() - 1) * 0.5) * spawnRangeY;
@@ -191,7 +190,7 @@ function createFallingElement() {
             if (index > -1) fallingElements.splice(index, 1);
         };
         baseSize = 50;
-    } else { // type === 'image'
+    } else { 
         content = new Image();
         content.src = images[Math.floor(Math.random() * images.length)];
         content.onload = () => {};
@@ -210,7 +209,7 @@ function createFallingElement() {
         y: initialY,
         z: initialZ,
         baseSize: baseSize,
-        speedZ: Math.random() * 5 + 2,
+        speedZ: Math.random() * 2 + 0.5, // más lento
     });
 }
 
@@ -387,4 +386,4 @@ for (let i = 0; i < initialFallingElementsCount; i++) {
     createFallingElement();
 }
 
-setInterval(createFallingElement, 100);
+setInterval(createFallingElement, 500); // más lento
