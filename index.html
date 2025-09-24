@@ -11,7 +11,20 @@
 
     <canvas id="canvas"></canvas>
 
+    <!-- Pista de audio -->
+    <audio id="miAudio" autoplay loop>
+        <source src="Carlos Baute - Colgando en tus manos (con Marta Sanchez).mp3" type="audio/mpeg">
+        Tu navegador no soporta audio.
+    </audio>
+
     <script src="script.js"></script>
+
+    <script>
+        // Opcional: controlar audio desde JS
+        const audio = document.getElementById('miAudio');
+        audio.volume = 0.5; // Volumen inicial (0.0 a 1.0)
+        audio.play().catch(e => console.log("Autoplay bloqueado por el navegador:", e));
+    </script>
 
 </body>
 </html>
