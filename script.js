@@ -2,12 +2,21 @@ const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
 // -------------------
-// AUDIO
+// AUDIO CON INTERACCIÓN
 // -------------------
-const audio = document.getElementById('miAudio'); // Ya definido en index.html
-audio.volume = 0.5; // Volumen inicial 0.0 a 1.0
-audio.loop = true;    // Repetir la canción
-audio.play().catch(e => console.log("Autoplay bloqueado por el navegador:", e));
+const audio = document.getElementById('miAudio');
+audio.volume = 0.5; // Volumen inicial
+audio.loop = true;
+
+function playAudio() {
+    audio.play().catch(e => console.log("Autoplay bloqueado:", e));
+    window.removeEventListener('click', playAudio);
+    window.removeEventListener('touchstart', playAudio);
+}
+
+// Reproducir audio tras la primera interacción del usuario
+window.addEventListener('click', playAudio);
+window.addEventListener('touchstart', playAudio);
 
 // -------------------
 // DPI y Escala
@@ -79,7 +88,7 @@ function resizeCanvas() {
     dpr = window.devicePixelRatio || 1;
     canvas.width = window.innerWidth * dpr;
     canvas.height = window.innerHeight * dpr;
-    ctx.setTransform(1,0,0,1,0,0); // resetear cualquier escalado previo
+    ctx.setTransform(1,0,0,1,0,0);
     ctx.scale(dpr, dpr);
     canvas.style.width = window.innerWidth + 'px';
     canvas.style.height = window.innerHeight + 'px';
