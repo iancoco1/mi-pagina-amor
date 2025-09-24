@@ -39,11 +39,18 @@ const images = [
     'https://png.pngtree.com/png-vector/20220619/ourmid/pngtree-sparkling-star-vector-icon-glitter-star-shape-png-image_5228522.png'
 ];
 
+// Ahora son 10 imágenes en total
 const heartImages = [
     '1.png',
     '2.png',
     '3.png',
-    '4.png'
+    '4.png',
+    '5.png',
+    '6.png',
+    '7.png',
+    '8.png',
+    '9.png',
+    '10.png'
 ];
 
 const textColorsCycle = [
