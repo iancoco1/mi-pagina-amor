@@ -1,10 +1,16 @@
+/* ---------------------
+   Estilos generales
+---------------------- */
 body, html {
     margin: 0;
     padding: 0;
     overflow: hidden; 
     background-color: #000; 
+    font-family: 'Dancing Script', cursive; /* Fuente más bonita y legible */
 }
 
 canvas {
     display: block; 
 }
+
+/* Opcional: si quieres que las frases del canvas tengan sombra más suave */

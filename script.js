@@ -5,7 +5,7 @@ const ctx = canvas.getContext('2d');
 // AUDIO CON INTERACCIÓN
 // -------------------
 const audio = document.getElementById('miAudio');
-audio.volume = 0.5; // Volumen inicial
+audio.volume = 0.5; 
 audio.loop = true;
 
 function playAudio() {
@@ -14,7 +14,6 @@ function playAudio() {
     window.removeEventListener('touchstart', playAudio);
 }
 
-// Reproducir audio tras la primera interacción del usuario
 window.addEventListener('click', playAudio);
 window.addEventListener('touchstart', playAudio);
 
@@ -220,7 +219,7 @@ function drawFallingElements() {
 
         if (el.type === 'phrase') {
             ctx.fillStyle = currentTextColor;
-            ctx.font = `${Math.max(10,size)}px 'Indie Flower', cursive`;
+            ctx.font = `${Math.max(10,size)}px 'Dancing Script', cursive`; // <-- Fuente nueva
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             const blurAmount = Math.max(0.5, Math.min(5, size/10));
@@ -268,7 +267,7 @@ canvas.addEventListener('mouseleave',()=>{isDragging=false; canvas.style.cursor=
 
 let touchStartDist = 0;
 canvas.addEventListener('touchstart',(e)=>{if(e.touches.length===1){isDragging=true; lastMouseX=e.touches[0].clientX; lastMouseY=e.touches[0].clientY;} else if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX; const dy=e.touches[0].clientY-e.touches[1].clientY; touchStartDist=Math.sqrt(dx*dx+dy*dy);}}, {passive:false});
-canvas.addEventListener('touchmove',(e)=>{if(e.touches.length===1 && isDragging){const dx=e.touches[0].clientX-lastMouseX; const dy=e.touches[0].clientY-lastMouseY; cameraX-=dx/zoomLevel; cameraY-=dy/zoomLevel; lastMouseX=e.touches[0].clientX; lastMouseY=e.touches[0].clientY;} else if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX; const dy=e.touches[0].clientY-e.touches[1].clientY; const newDist=Math.sqrt(dx*dx+dy*dy); if(touchStartDist>0){zoomLevel=Math.max(0.1,Math.min(zoomLevel+(newDist-touchStartDist)*0.005,5));} touchStartDist=newDist;}},{passive:false});
+canvas.addEventListener('touchmove',(e)=>{if(e.touches.length===1&&isDragging){const dx=e.touches[0].clientX-lastMouseX; const dy=e.touches[0].clientY-lastMouseY; cameraX-=dx/zoomLevel; cameraY-=dy/zoomLevel; lastMouseX=e.touches[0].clientX; lastMouseY=e.touches[0].clientY;}else if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX; const dy=e.touches[0].clientY-e.touches[1].clientY; const newDist=Math.sqrt(dx*dx+dy*dy); if(touchStartDist>0){const scaleAmount=(newDist-touchStartDist)*0.005; zoomLevel=Math.max(0.1,Math.min(zoomLevel+scaleAmount,5));} touchStartDist=newDist;}}, {passive:false});
 canvas.addEventListener('touchend',()=>{isDragging=false; touchStartDist=0;});
 
 window.addEventListener('resize', resizeCanvas);
