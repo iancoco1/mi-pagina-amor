@@ -1,6 +1,9 @@
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
+// Almacena el factor de escala DPI para pantallas de alta resolución
+let dpr = window.devicePixelRatio || 1;
+
 function hexToRgb(hex) {
     const bigint = parseInt(hex.slice(1), 16);
     const r = (bigint >> 16) & 255;
@@ -76,16 +79,35 @@ let isDragging = false;
 let lastMouseX = 0;
 let lastMouseY = 0;
 
-
 function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    dpr = window.devicePixelRatio || 1; // Recalcular DPR
+    
+    // Establecer las dimensiones físicas del canvas
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
 
+    // Escalar el contexto de dibujo para que se adapte al DPR
+    // Esto hace que todo lo que dibujemos se vea más nítido
+    ctx.scale(dpr, dpr);
+
+    // Ajustar las dimensiones de visualización del canvas con CSS
+    // Esto es importante para que el canvas no aparezca "demasiado grande"
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+
+    // Desactivar el suavizado de imágenes para evitar que se vean borrosas por el escalado interno
+    ctx.imageSmoothingEnabled = true; // false podría ser demasiado pixelado, true es generalmente mejor
+    ctx.webkitImageSmoothingEnabled = true;
+    ctx.mozImageSmoothingEnabled = true;
+    ctx.msImageSmoothingEnabled = true;
+
+    // Reiniciar estrellas para que se ajusten a las nuevas dimensiones lógicas
     stars.length = 0;
     for (let i = 0; i < 300; i++) {
         stars.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
+            // Las posiciones ahora son en coordenadas lógicas (CSS píxeles)
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
             radius: Math.random() * 1.5 + 0.5,
             alpha: Math.random(),
             delta: (Math.random() * 0.02) + 0.005
@@ -94,11 +116,12 @@ function resizeCanvas() {
 }
 
 function drawBackground() {
-    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    // Usar window.innerWidth/Height para el gradiente porque ctx.scale ya se encarga del DPR
+    const gradient = ctx.createLinearGradient(0, 0, 0, window.innerHeight);
     gradient.addColorStop(0, "#0a0a23");
     gradient.addColorStop(1, "#0c0004ff");
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
 }
 
 function drawStars() {
@@ -116,8 +139,9 @@ function drawStars() {
 }
 
 function createShootingStar() {
-    const startX = Math.random() * canvas.width;
-    const startY = Math.random() * canvas.height / 2;
+    // Usar window.innerWidth/Height para la posición inicial
+    const startX = Math.random() * window.innerWidth;
+    const startY = Math.random() * window.innerHeight / 2;
     shootingStars.push({
         x: startX,
         y: startY,
@@ -171,8 +195,9 @@ function createFallingElement() {
     const maxZ = focalLength * 5;
     const initialZ = minZ + Math.random() * (maxZ - minZ);
 
-    const worldPlaneWidth = (canvas.width / focalLength) * maxZ;
-    const worldPlaneHeight = (canvas.height / focalLength) * maxZ;
+    // Usar window.innerWidth/Height para calcular el tamaño del "mundo"
+    const worldPlaneWidth = (window.innerWidth / focalLength) * maxZ;
+    const worldPlaneHeight = (window.innerHeight / focalLength) * maxZ;
 
     const bufferFactor = 1.1; 
     const spawnRangeX = worldPlaneWidth * bufferFactor;
@@ -240,26 +265,37 @@ function drawFallingElements() {
 
         const perspectiveScale = focalLength / el.z;
 
-        const size = el.baseSize * perspectiveScale * zoomLevel;
+        // Asegúrate de que el tamaño mínimo sea razonable para evitar que desaparezcan o se pixelicen demasiado
+        const minDisplaySize = 5; // Un tamaño mínimo en píxeles lógicos
+        let size = el.baseSize * perspectiveScale * zoomLevel;
+        size = Math.max(minDisplaySize, size); // Asegura un tamaño mínimo
+
         const opacity = Math.max(0, Math.min(1, perspectiveScale));
 
-        const displayX = (el.x - cameraX) * perspectiveScale + canvas.width / 2;
-        const displayY = (el.y - cameraY) * perspectiveScale + canvas.height / 2;
+        // Usar window.innerWidth/Height
+        const displayX = (el.x - cameraX) * perspectiveScale + window.innerWidth / 2;
+        const displayY = (el.y - cameraY) * perspectiveScale + window.innerHeight / 2;
 
         ctx.save();
-
         ctx.globalAlpha = opacity;
 
         if (el.type === 'phrase') {
             ctx.fillStyle = currentTextColor;
-            ctx.font = `${size}px 'Indie Flower', cursive`;
+            // Usa 'px' explícitamente y asegúrate de que el tamaño de la fuente tenga un mínimo para legibilidad
+            ctx.font = `${Math.max(10, size)}px 'Indie Flower', cursive`; 
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
+            // Ajusta el shadowBlur para que sea proporcional al tamaño del texto
+            // Reduce el blur a medida que el texto se hace más pequeño
+            const blurAmount = Math.max(0.5, Math.min(5, size / 10)); // Ajustar este factor
             ctx.shadowColor = currentTextColor;
-            ctx.shadowBlur = 5 * perspectiveScale;
+            ctx.shadowBlur = blurAmount;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 0;
+
+            // Optimización: Desactivar antialiasing para texto muy pequeño si aún se ve mal, o dejarlo en automático
+            // ctx.textRendering = 'optimizeLegibility'; // Puede ayudar en algunos navegadores
 
             ctx.fillText(el.content, displayX, displayY);
 
@@ -267,13 +303,16 @@ function drawFallingElements() {
             ctx.shadowBlur = 0;
 
         } else if ((el.type === 'image' || el.type === 'heart') && el.content.complete && el.content.naturalHeight !== 0) {
+            // imageSmoothingEnabled ya está manejado en resizeCanvas para el contexto
             ctx.drawImage(el.content, displayX - size / 2, displayY - size / 2, size, size);
         }
 
         ctx.restore();
 
-        if ((displayX + size / 2 < 0 || displayX - size / 2 > canvas.width ||
-             displayY + size / 2 < 0 || displayY - size / 2 > canvas.height) && el.z > focalLength) {
+        // Eliminar elementos que están fuera de la vista
+        // Usa window.innerWidth/Height
+        if ((displayX + size / 2 < 0 || displayX - size / 2 > window.innerWidth ||
+             displayY + size / 2 < 0 || displayY - size / 2 > window.innerHeight) && el.z > focalLength) {
             fallingElements.splice(i, 1);
             createFallingElement();
         }
@@ -283,7 +322,8 @@ function drawFallingElements() {
 function animate() {
     requestAnimationFrame(animate);
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // No es necesario clearRect si el drawBackground cubre todo
+    // ctx.clearRect(0, 0, canvas.width, canvas.height); 
 
     drawBackground();
     drawStars();
@@ -323,7 +363,8 @@ canvas.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
     const dx = e.clientX - lastMouseX;
     const dy = e.clientY - lastMouseY;
-    cameraX -= dx / zoomLevel;
+    // Dividir por zoomLevel para que el arrastre se sienta más natural con el zoom
+    cameraX -= dx / zoomLevel; 
     cameraY -= dy / zoomLevel;
     lastMouseX = e.clientX;
     lastMouseY = e.clientY;
@@ -360,6 +401,7 @@ canvas.addEventListener('touchmove', (e) => {
     if (e.touches.length === 1 && isDragging) {
         const dx = e.touches[0].clientX - lastMouseX;
         const dy = e.touches[0].clientY - lastMouseY;
+        // Dividir por zoomLevel para el arrastre táctil también
         cameraX -= dx / zoomLevel;
         cameraY -= dy / zoomLevel;
         lastMouseX = e.touches[0].clientX;
@@ -383,14 +425,27 @@ canvas.addEventListener('touchend', () => {
 
 window.addEventListener('resize', resizeCanvas);
 
-resizeCanvas();
-animate();
+// Cargar la fuente personalizada antes de llamar a resizeCanvas y animate
+document.fonts.ready.then(() => {
+    console.log("Fonts loaded.");
+    resizeCanvas();
+    animate();
 
-setInterval(createShootingStar, 500);
+    setInterval(createShootingStar, 500);
 
-const initialFallingElementsCount = 50;
-for (let i = 0; i < initialFallingElementsCount; i++) {
-    createFallingElement();
-}
+    const initialFallingElementsCount = 50;
+    for (let i = 0; i < initialFallingElementsCount; i++) {
+        createFallingElement();
+    }
 
-setInterval(createFallingElement, 500); // más lento
+    setInterval(createFallingElement, 500); // más lento
+});
+
+// Asegurarse de que el body y html no tengan márgenes ni padding para que el canvas ocupe toda la pantalla
+document.body.style.margin = '0';
+document.body.style.padding = '0';
+document.documentElement.style.margin = '0';
+document.documentElement.style.padding = '0';
+document.body.style.overflow = 'hidden'; // Evita scrollbars
+// Establecer el cursor por defecto en el canvas
+canvas.style.cursor = 'grab';
