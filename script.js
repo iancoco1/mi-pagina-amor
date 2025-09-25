@@ -71,7 +71,18 @@ let heartImages = [
 let backgroundColors = ["#0a0a23", "#0c0004ff"];
 
 // Versión secreta
-const secretPhrases = Array(10).fill("PRUEBA");
+const secretPhrases = [
+    "Encontraste este secreto 🤭",
+    "En mi mundo solo eres tú 💖",
+    "Nunca olvides que te amo 😘",
+    "Hoy es 26 de septiembre de 2024 📅",
+    "Eres increíble tal como eres 🌟",
+    "Estoy muy orgulloso de ti 🥰",
+    "Gracias por estar a mi lado 🤝",
+    "Cada día contigo es un regalo 🎁",
+    "Siempre pienso en ti 💭",
+    "Te deseo felicidad infinita 🌈"
+];
 const secretHeartImages = [
     '11.png','12.png','13.png','14.png','15.png','16.png',
     '17.png','18.png','19.png','20.png','21.png','22.png','23.png'
