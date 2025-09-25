@@ -41,8 +41,8 @@ function interpolateColor(color1, color2, factor) {
     const [r1, g1, b1] = hexToRgb(color1);
     const [r2, g2, b2] = hexToRgb(color2);
     const r = Math.round(r1 + factor * (r2 - r1));
-    const g = Math.round(g1 + factor * (g2 - g1));
-    const b = Math.round(b1 + factor * (g2 - g1));
+    const g = Math.round(g1 + factor * (r2 - r1)); // <-- Esto estaba mal: r2 - r1 en vez de g2 - g1
+    const b = Math.round(b1 + factor * (b2 - b1)); // <-- Esto estaba mal: g2 - g1 en vez de b2 - b1
     return rgbToHex(r, g, b);
 }
 
@@ -54,7 +54,7 @@ const shootingStars = [];
 const fallingElements = [];
 
 // Versión normal
-let phrases = [
+let currentPhrases = [
     "Te Amo Wendy",
     "MI CHINITA HERMOSA",
     "Eres preciosa mi amor",
@@ -62,13 +62,13 @@ let phrases = [
     "Me encantas demasiado mi vida",
     "te amo más que a nada mi amor"
 ];
-let images = [
+const normalImages = [
     'https://png.pngtree.com/png-vector/20220619/ourmid/pngtree-sparkling-star-vector-icon-glitter-star-shape-png-image_5228522.png'
 ];
-let heartImages = [
+const normalHeartImagePaths = [
     '1.png','2.png','3.png','4.png','5.png','6.png','7.png','8.png','9.png','10.png'
 ];
-let backgroundColors = ["#0a0a23", "#0c0004ff"];
+let currentBackgroundColors = ["#0a0a23", "#0c0004ff"];
 
 // Versión secreta
 const secretPhrases = [
@@ -83,11 +83,32 @@ const secretPhrases = [
      "Tú y yo contra el mundo 💪🌍",
      "Mi corazón es tuyo 💘"
 ];
-const secretHeartImages = [
+const secretHeartImagePaths = [
     '11.png','12.png','13.png','14.png','15.png','16.png',
     '17.png','18.png','19.png','20.png','21.png','22.png','23.png'
 ];
 const secretBackgroundColors = ["#FF8000", "#FF9933"];
+
+// Pre-carga de imágenes de corazones
+let normalHeartImages = [];
+let secretHeartImages = [];
+
+function preloadImages(paths, arrayToPopulate) {
+    return Promise.all(paths.map(path => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.src = path;
+            img.onload = () => {
+                arrayToPopulate.push(img);
+                resolve(img);
+            };
+            img.onerror = () => {
+                console.warn(`Error al cargar la imagen: ${path}`);
+                reject(new Error(`Failed to load image: ${path}`));
+            };
+        });
+    }));
+}
 
 const textColorsCycle = ['#FFD700','#FFA500','#ADFF2F','#00FFFF','#FF69B4','#FFFFFF','#9932CC'];
 let currentColorIndex = 0;
@@ -107,19 +128,24 @@ let lastMouseY = 0;
 // Easter egg
 // -------------------
 let tapCount = 0;
+const TAP_COUNT_TO_TRIGGER = 12; // Número de taps para activar el easter egg
 let secretMode = false;
 
 function triggerSecretMode() {
     secretMode = true;
     // Cambiar frases, imágenes, colores
-    phrases = [...secretPhrases];
-    heartImages = [...secretHeartImages];
-    backgroundColors = [...secretBackgroundColors];
+    currentPhrases = [...secretPhrases];
+    currentBackgroundColors = [...secretBackgroundColors];
+    // Asegurarse de que las imágenes de corazón ya estén cargadas
+    currentHeartImages = secretHeartImages; // Usar las imágenes precargadas
 
     // Cambiar música
     audioNormal.pause();
     audioNormal.currentTime = 0;
     audioSecret.play().catch(e => console.log("Autoplay bloqueado (secreto):", e));
+    
+    // Resetear el conteo de taps para evitar re-activación accidental
+    tapCount = 0; 
 }
 
 // -------------------
@@ -136,7 +162,7 @@ function resizeCanvas() {
     ctx.imageSmoothingEnabled = true;
 
     stars.length = 0;
-    for (let i = 0; i < 300; i++) {
+    for (let i = 0; i < 200; i++) { // Reducido el número de estrellas para menos carga
         stars.push({
             x: Math.random() * window.innerWidth,
             y: Math.random() * window.innerHeight,
@@ -149,8 +175,8 @@ function resizeCanvas() {
 
 function drawBackground() {
     const gradient = ctx.createLinearGradient(0, 0, 0, window.innerHeight);
-    gradient.addColorStop(0, backgroundColors[0]);
-    gradient.addColorStop(1, backgroundColors[1]);
+    gradient.addColorStop(0, currentBackgroundColors[0]);
+    gradient.addColorStop(1, currentBackgroundColors[1]);
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
 }
@@ -175,8 +201,8 @@ function createShootingStar() {
     shootingStars.push({
         x: startX,
         y: startY,
-        length: Math.random() * 300 + 100,
-        speed: Math.random() * 4 + 2,
+        length: Math.random() * 200 + 50, // Longitud ajustada
+        speed: Math.random() * 3 + 1,      // Velocidad ajustada
         angle: Math.PI / 4,
         opacity: 1
     });
@@ -185,6 +211,12 @@ function createShootingStar() {
 function drawShootingStars() {
     for (let i = shootingStars.length - 1; i >= 0; i--) {
         const s = shootingStars[i];
+        // Eliminar estrellas fugaces que están fuera de la pantalla
+        if (s.x > window.innerWidth * 1.5 || s.y > window.innerHeight * 1.5 || s.opacity <= 0) {
+            shootingStars.splice(i, 1);
+            continue;
+        }
+
         const endX = s.x - Math.cos(s.angle) * s.length;
         const endY = s.y - Math.sin(s.angle) * s.length;
         const gradient = ctx.createLinearGradient(s.x, s.y, endX, endY);
@@ -198,17 +230,16 @@ function drawShootingStars() {
         ctx.stroke();
         s.x += Math.cos(s.angle) * s.speed;
         s.y += Math.sin(s.angle) * s.speed;
-        s.opacity -= 0.01;
-        if (s.opacity <= 0) shootingStars.splice(i,1);
+        s.opacity -= 0.005; // Velocidad de desvanecimiento ajustada
     }
 }
 
 function createFallingElement() {
     const rand = Math.random();
     let type;
-    if (rand < 0.6) type = 'phrase';
-    else if (rand < 0.8) type = 'image';
-    else type = 'heart';
+    if (rand < 0.6) type = 'phrase'; // Más frases
+    else if (rand < 0.9) type = 'heart'; // Más corazones
+    else type = 'image'; // Menos imágenes generales, ya que son más pesadas
 
     const minZ = focalLength * 1.5;
     const maxZ = focalLength * 5;
@@ -225,19 +256,22 @@ function createFallingElement() {
 
     let content, baseSize;
     if (type === 'phrase') {
-        content = phrases[Math.floor(Math.random() * phrases.length)];
+        content = currentPhrases[Math.floor(Math.random() * currentPhrases.length)];
         baseSize = 30;
     } else if (type === 'heart') {
-        content = new Image();
-        content.src = heartImages[Math.floor(Math.random() * heartImages.length)];
+        // Usar las imágenes precargadas
+        content = currentHeartImages[Math.floor(Math.random() * currentHeartImages.length)];
         baseSize = 50;
-    } else {
-        content = new Image();
-        content.src = images[Math.floor(Math.random() * images.length)];
+    } else { // type === 'image'
+        // Aquí podrías precargar estas imágenes también si fueran muchas y variadas.
+        // Por ahora, asumimos que 'normalImages' es pequeña.
+        const img = new Image();
+        img.src = normalImages[Math.floor(Math.random() * normalImages.length)];
+        content = img;
         baseSize = 50;
     }
 
-    fallingElements.push({type, content, x, y, z, baseSize, speedZ: Math.random()*2+0.5});
+    fallingElements.push({type, content, x, y, z, baseSize, speedZ: Math.random()*1.5+0.3}); // Velocidad ajustada
 }
 
 function drawFallingElements() {
@@ -245,7 +279,13 @@ function drawFallingElements() {
     for (let i = fallingElements.length - 1; i >= 0; i--) {
         const el = fallingElements[i];
         el.z -= el.speedZ * zoomLevel;
-        if (el.z <= 0) { fallingElements.splice(i,1); createFallingElement(); continue; }
+        
+        // Criterio de eliminación y creación más eficiente
+        if (el.z <= 0 || el.z > focalLength * 6) { // Eliminar si está muy cerca o muy lejos (fuera de vista trasera)
+            fallingElements.splice(i,1); 
+            // Podríamos crear un nuevo elemento aquí, pero para controlar la cantidad total, lo hacemos con setInterval.
+            continue; 
+        }
 
         const perspectiveScale = focalLength / el.z;
         const minDisplaySize = 5;
@@ -255,6 +295,15 @@ function drawFallingElements() {
         const opacity = Math.max(0, Math.min(1, perspectiveScale));
         const displayX = (el.x - cameraX) * perspectiveScale + window.innerWidth/2;
         const displayY = (el.y - cameraY) * perspectiveScale + window.innerHeight/2;
+
+        // Optimización: No dibujar si está muy pequeño o fuera de la pantalla.
+        if (size < minDisplaySize && el.type !== 'phrase') { // Las frases pueden seguir siendo legibles un poco más pequeñas
+            continue;
+        }
+        if (displayX + size/2 < 0 || displayX - size/2 > window.innerWidth ||
+            displayY + size/2 < 0 || displayY - size/2 > window.innerHeight) {
+            continue;
+        }
 
         ctx.save();
         ctx.globalAlpha = opacity;
@@ -274,12 +323,6 @@ function drawFallingElements() {
         }
 
         ctx.restore();
-
-        if ((displayX + size/2 < 0 || displayX - size/2 > window.innerWidth ||
-            displayY + size/2 < 0 || displayY - size/2 > window.innerHeight) && el.z > focalLength) {
-            fallingElements.splice(i,1);
-            createFallingElement();
-        }
     }
 }
 
@@ -312,7 +355,11 @@ canvas.addEventListener('touchstart',(e)=>{
     if(e.touches.length===1){
         isDragging=true; lastMouseX=e.touches[0].clientX; lastMouseY=e.touches[0].clientY;
         tapCount++;
-        if (tapCount >= 12 && !secretMode) triggerSecretMode();
+        // Solo activar el modo secreto si no está activo ya
+        if (tapCount >= TAP_COUNT_TO_TRIGGER && !secretMode) {
+            triggerSecretMode();
+            tapCount = 0; // Resetear para evitar activaciones múltiples
+        }
     } else if(e.touches.length===2){
         const dx=e.touches[0].clientX-e.touches[1].clientX; 
         const dy=e.touches[0].clientY-e.touches[1].clientY; 
@@ -345,12 +392,18 @@ window.addEventListener('resize', resizeCanvas);
 // -------------------
 // Inicialización
 // -------------------
-document.fonts.ready.then(()=>{
+let currentHeartImages = normalHeartImages; // Inicializar con las imágenes normales
+
+document.fonts.ready.then(async ()=>{ // Usar async/await para la precarga
+    // Precargar todas las imágenes de corazones
+    await preloadImages(normalHeartImagePaths, normalHeartImages);
+    await preloadImages(secretHeartImagePaths, secretHeartImages);
+    
     resizeCanvas();
     animate();
-    setInterval(createShootingStar,500);
-    for(let i=0;i<50;i++) createFallingElement();
-    setInterval(createFallingElement,500);
+    setInterval(createShootingStar, 1000); // Reducido a cada 1 segundo
+    for(let i=0;i<30;i++) createFallingElement(); // Reducido el número inicial de elementos
+    setInterval(createFallingElement, 800); // Reducido la frecuencia de creación de elementos
 });
 
 document.body.style.margin='0';
