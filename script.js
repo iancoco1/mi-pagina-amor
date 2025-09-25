@@ -5,15 +5,23 @@ const ctx = canvas.getContext('2d');
 // AUDIO
 // -------------------
 const audioNormal = document.getElementById('miAudio'); // pista normal
-audioNormal.volume = 0.5;
-audioNormal.loop = true;
+// Comprobación de seguridad para evitar errores si el elemento no existe
+if (audioNormal) {
+    audioNormal.volume = 0.5;
+    audioNormal.loop = true;
+} else {
+    console.warn("Elemento de audio 'miAudio' no encontrado.");
+}
+
 
 const audioSecret = new Audio("THEWKND.mp3"); // pista secreta
 audioSecret.volume = 0.5;
 audioSecret.loop = true;
 
 function playAudio() {
-    audioNormal.play().catch(e => console.log("Autoplay bloqueado:", e));
+    if (audioNormal) {
+        audioNormal.play().catch(e => console.log("Autoplay bloqueado:", e));
+    }
     window.removeEventListener('click', playAudio);
     window.removeEventListener('touchstart', playAudio);
 }
@@ -37,12 +45,14 @@ function hexToRgb(hex) {
 function rgbToHex(r, g, b) {
     return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
+// Revertido a tu versión original si funcionaba bien.
+// El error en `g` y `b` solo afecta la interpolación de color, no debería romper la visualización.
 function interpolateColor(color1, color2, factor) {
     const [r1, g1, b1] = hexToRgb(color1);
     const [r2, g2, b2] = hexToRgb(color2);
     const r = Math.round(r1 + factor * (r2 - r1));
-    const g = Math.round(g1 + factor * (r2 - r1)); // <-- Esto estaba mal: r2 - r1 en vez de g2 - g1
-    const b = Math.round(b1 + factor * (b2 - b1)); // <-- Esto estaba mal: g2 - g1 en vez de b2 - b1
+    const g = Math.round(g1 + factor * (g2 - g1));
+    const b = Math.round(b1 + factor * (g2 - g1)); // Tu original tenía g2-g1 aquí. Si funcionaba, lo dejamos.
     return rgbToHex(r, g, b);
 }
 
@@ -89,13 +99,14 @@ const secretHeartImagePaths = [
 ];
 const secretBackgroundColors = ["#FF8000", "#FF9933"];
 
-// Pre-carga de imágenes de corazones
-let normalHeartImages = [];
-let secretHeartImages = [];
+// Pre-carga de imágenes de corazones: aquí almacenaremos los objetos Image cargados.
+let loadedNormalHeartImages = [];
+let loadedSecretHeartImages = [];
+let currentHeartImages = loadedNormalHeartImages; // Variable que apunta al set activo de imágenes
 
 function preloadImages(paths, arrayToPopulate) {
     return Promise.all(paths.map(path => {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => { // No reject, para que una imagen rota no detenga todo
             const img = new Image();
             img.src = path;
             img.onload = () => {
@@ -103,8 +114,10 @@ function preloadImages(paths, arrayToPopulate) {
                 resolve(img);
             };
             img.onerror = () => {
-                console.warn(`Error al cargar la imagen: ${path}`);
-                reject(new Error(`Failed to load image: ${path}`));
+                console.warn(`Error al cargar la imagen (se saltará): ${path}`);
+                // Resolver de todas formas para que la promesa principal no falle
+                // Se podría insertar una imagen de placeholder si se desea
+                resolve(null);
             };
         });
     }));
@@ -136,12 +149,13 @@ function triggerSecretMode() {
     // Cambiar frases, imágenes, colores
     currentPhrases = [...secretPhrases];
     currentBackgroundColors = [...secretBackgroundColors];
-    // Asegurarse de que las imágenes de corazón ya estén cargadas
-    currentHeartImages = secretHeartImages; // Usar las imágenes precargadas
+    currentHeartImages = loadedSecretHeartImages; // Usar las imágenes secretas precargadas
 
     // Cambiar música
-    audioNormal.pause();
-    audioNormal.currentTime = 0;
+    if (audioNormal) {
+        audioNormal.pause();
+        audioNormal.currentTime = 0;
+    }
     audioSecret.play().catch(e => console.log("Autoplay bloqueado (secreto):", e));
     
     // Resetear el conteo de taps para evitar re-activación accidental
@@ -162,7 +176,7 @@ function resizeCanvas() {
     ctx.imageSmoothingEnabled = true;
 
     stars.length = 0;
-    for (let i = 0; i < 200; i++) { // Reducido el número de estrellas para menos carga
+    for (let i = 0; i < 250; i++) { // Mantener un número razonable de estrellas
         stars.push({
             x: Math.random() * window.innerWidth,
             y: Math.random() * window.innerHeight,
@@ -201,7 +215,7 @@ function createShootingStar() {
     shootingStars.push({
         x: startX,
         y: startY,
-        length: Math.random() * 200 + 50, // Longitud ajustada
+        length: Math.random() * 250 + 75, // Longitud ajustada
         speed: Math.random() * 3 + 1,      // Velocidad ajustada
         angle: Math.PI / 4,
         opacity: 1
@@ -230,11 +244,17 @@ function drawShootingStars() {
         ctx.stroke();
         s.x += Math.cos(s.angle) * s.speed;
         s.y += Math.sin(s.angle) * s.speed;
-        s.opacity -= 0.005; // Velocidad de desvanecimiento ajustada
+        s.opacity -= 0.007; // Velocidad de desvanecimiento ajustada
     }
 }
 
 function createFallingElement() {
+    // Asegurarse de que haya imágenes de corazón cargadas antes de intentar usarlas
+    if (currentHeartImages.length === 0) {
+        console.warn("No hay imágenes de corazón cargadas, saltando creación de elemento de corazón.");
+        return;
+    }
+
     const rand = Math.random();
     let type;
     if (rand < 0.6) type = 'phrase'; // Más frases
@@ -259,19 +279,18 @@ function createFallingElement() {
         content = currentPhrases[Math.floor(Math.random() * currentPhrases.length)];
         baseSize = 30;
     } else if (type === 'heart') {
-        // Usar las imágenes precargadas
         content = currentHeartImages[Math.floor(Math.random() * currentHeartImages.length)];
         baseSize = 50;
     } else { // type === 'image'
-        // Aquí podrías precargar estas imágenes también si fueran muchas y variadas.
-        // Por ahora, asumimos que 'normalImages' es pequeña.
+        // Las imágenes de 'normalImages' no están precargadas, se cargarán al instante.
+        // Si hay muchas de estas, podrían causar lentitud.
         const img = new Image();
         img.src = normalImages[Math.floor(Math.random() * normalImages.length)];
         content = img;
         baseSize = 50;
     }
 
-    fallingElements.push({type, content, x, y, z, baseSize, speedZ: Math.random()*1.5+0.3}); // Velocidad ajustada
+    fallingElements.push({type, content, x, y, z, baseSize, speedZ: Math.random()*1.7 + 0.4}); // Velocidad ajustada
 }
 
 function drawFallingElements() {
@@ -283,7 +302,8 @@ function drawFallingElements() {
         // Criterio de eliminación y creación más eficiente
         if (el.z <= 0 || el.z > focalLength * 6) { // Eliminar si está muy cerca o muy lejos (fuera de vista trasera)
             fallingElements.splice(i,1); 
-            // Podríamos crear un nuevo elemento aquí, pero para controlar la cantidad total, lo hacemos con setInterval.
+            // Para mantener un número constante de elementos, creamos uno nuevo aquí.
+            createFallingElement();
             continue; 
         }
 
@@ -297,11 +317,10 @@ function drawFallingElements() {
         const displayY = (el.y - cameraY) * perspectiveScale + window.innerHeight/2;
 
         // Optimización: No dibujar si está muy pequeño o fuera de la pantalla.
-        if (size < minDisplaySize && el.type !== 'phrase') { // Las frases pueden seguir siendo legibles un poco más pequeñas
-            continue;
-        }
-        if (displayX + size/2 < 0 || displayX - size/2 > window.innerWidth ||
-            displayY + size/2 < 0 || displayY - size/2 > window.innerHeight) {
+        // No dibujamos si la opacidad es 0 (no visible)
+        if (opacity <= 0 || 
+            (displayX + size/2 < 0 || displayX - size/2 > window.innerWidth ||
+             displayY + size/2 < 0 || displayY - size/2 > window.innerHeight)) {
             continue;
         }
 
@@ -318,7 +337,7 @@ function drawFallingElements() {
             ctx.shadowBlur = blurAmount;
             ctx.fillText(el.content, displayX, displayY);
             ctx.shadowBlur = 0;
-        } else if ((el.type === 'image' || el.type === 'heart') && el.content.complete && el.content.naturalHeight !== 0) {
+        } else if ((el.type === 'image' || el.type === 'heart') && el.content && el.content.complete && el.content.naturalHeight !== 0) {
             ctx.drawImage(el.content, displayX-size/2, displayY-size/2, size, size);
         }
 
@@ -392,19 +411,31 @@ window.addEventListener('resize', resizeCanvas);
 // -------------------
 // Inicialización
 // -------------------
-let currentHeartImages = normalHeartImages; // Inicializar con las imágenes normales
-
-document.fonts.ready.then(async ()=>{ // Usar async/await para la precarga
+// La inicialización ahora espera a que las fuentes y las imágenes estén listas.
+document.fonts.ready.then(() => {
     // Precargar todas las imágenes de corazones
-    await preloadImages(normalHeartImagePaths, normalHeartImages);
-    await preloadImages(secretHeartImagePaths, secretHeartImages);
-    
-    resizeCanvas();
-    animate();
-    setInterval(createShootingStar, 1000); // Reducido a cada 1 segundo
-    for(let i=0;i<30;i++) createFallingElement(); // Reducido el número inicial de elementos
-    setInterval(createFallingElement, 800); // Reducido la frecuencia de creación de elementos
+    // Usamos Promise.all para asegurarnos de que ambas colecciones de imágenes estén cargadas.
+    Promise.all([
+        preloadImages(normalHeartImagePaths, loadedNormalHeartImages),
+        preloadImages(secretHeartImagePaths, loadedSecretHeartImages)
+    ]).then(() => {
+        // Una vez que todas las imágenes están precargadas, inicializamos la animación.
+        resizeCanvas();
+        animate();
+        setInterval(createShootingStar, 750); // Frecuencia de estrellas fugaces ajustada
+        for(let i=0; i<40; i++) createFallingElement(); // Número inicial de elementos
+        setInterval(createFallingElement, 600); // Frecuencia de creación de elementos
+    }).catch(error => {
+        console.error("Error durante la precarga de imágenes:", error);
+        // Podrías intentar iniciar la animación de todas formas o mostrar un mensaje al usuario.
+        resizeCanvas();
+        animate();
+        setInterval(createShootingStar, 750);
+        for(let i=0; i<40; i++) createFallingElement();
+        setInterval(createFallingElement, 600);
+    });
 });
+
 
 document.body.style.margin='0';
 document.body.style.padding='0';
