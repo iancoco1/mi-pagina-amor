@@ -9,7 +9,9 @@ audio.volume = 0.5;
 audio.loop = true;
 
 function playAudio() {
-    audio.play().catch(e => console.log("Autoplay bloqueado:", e));
+    if (audio.paused) {
+        audio.play().catch(e => console.log("Autoplay bloqueado:", e));
+    }
     window.removeEventListener('click', playAudio);
     window.removeEventListener('touchstart', playAudio);
 }
@@ -50,16 +52,12 @@ const shootingStars = [];
 const fallingElements = [];
 
 const phrases = [
-    "✅ Encontraste este secreto 🤭",
-    "✅ En mi mundo solo eres tú 💖",
-    "✅ 26 de septiembre de 2024 📅",
-    "✅ Eres increíble y única 🌟",
-    "✅ Cada día me sorprendes 😍",
-    "✅ Estoy muy orgulloso de ti 🥰",
-    "✅ Siempre pienso en ti 💭",
-    "✅ Contigo todo es mejor 🌈",
-    "✅ Nunca dejes de sonreír 😁",
-    "✅ Gracias por ser como eres 🙏"
+    "PRUEBA",
+    "PRUEBA",
+    "PRUEBA",
+    "PRUEBA",
+    "PRUEBA",
+    "PRUEBA"
 ];
 
 const images = [
@@ -111,8 +109,8 @@ function resizeCanvas() {
 
 function drawBackground() {
     const gradient = ctx.createLinearGradient(0, 0, 0, window.innerHeight);
-    gradient.addColorStop(0, "#FFA500"); // Fondo naranja
-    gradient.addColorStop(1, "#FFB733");
+    gradient.addColorStop(0, "#0a0a23");
+    gradient.addColorStop(1, "#0c0004ff");
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
 }
