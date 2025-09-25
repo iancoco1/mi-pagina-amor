@@ -2,16 +2,18 @@ const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
 // -------------------
-// AUDIO CON INTERACCIÓN
+// AUDIO
 // -------------------
-const audio = document.getElementById('miAudio');
-audio.volume = 0.5; 
-audio.loop = true;
+const audioNormal = document.getElementById('miAudio'); // pista normal
+audioNormal.volume = 0.5;
+audioNormal.loop = true;
+
+const audioSecret = new Audio("THEWKND.mp3"); // pista secreta
+audioSecret.volume = 0.5;
+audioSecret.loop = true;
 
 function playAudio() {
-    if (audio.paused) {
-        audio.play().catch(e => console.log("Autoplay bloqueado:", e));
-    }
+    audioNormal.play().catch(e => console.log("Autoplay bloqueado:", e));
     window.removeEventListener('click', playAudio);
     window.removeEventListener('touchstart', playAudio);
 }
@@ -40,7 +42,7 @@ function interpolateColor(color1, color2, factor) {
     const [r2, g2, b2] = hexToRgb(color2);
     const r = Math.round(r1 + factor * (r2 - r1));
     const g = Math.round(g1 + factor * (g2 - g1));
-    const b = Math.round(b1 + factor * (b2 - b1));
+    const b = Math.round(b1 + factor * (g2 - g1));
     return rgbToHex(r, g, b);
 }
 
@@ -51,22 +53,30 @@ const stars = [];
 const shootingStars = [];
 const fallingElements = [];
 
-const phrases = [
-    "PRUEBA",
-    "PRUEBA",
-    "PRUEBA",
-    "PRUEBA",
-    "PRUEBA",
-    "PRUEBA"
+// Versión normal
+let phrases = [
+    "Te Amo Wendy",
+    "MI CHINITA HERMOSA",
+    "Eres preciosa mi amor",
+    "FELIZ PRIMER AÑO MI AMOR",
+    "Me encantas demasiado mi vida",
+    "te amo más que a nada mi amor"
 ];
-
-const images = [
+let images = [
     'https://png.pngtree.com/png-vector/20220619/ourmid/pngtree-sparkling-star-vector-icon-glitter-star-shape-png-image_5228522.png'
 ];
-
-const heartImages = [
+let heartImages = [
     '1.png','2.png','3.png','4.png','5.png','6.png','7.png','8.png','9.png','10.png'
 ];
+let backgroundColors = ["#0a0a23", "#0c0004ff"];
+
+// Versión secreta
+const secretPhrases = Array(10).fill("PRUEBA");
+const secretHeartImages = [
+    '11.png','12.png','13.png','14.png','15.png','16.png',
+    '17.png','18.png','19.png','20.png','21.png','22.png','23.png'
+];
+const secretBackgroundColors = ["#FF8000", "#FF9933"];
 
 const textColorsCycle = ['#FFD700','#FFA500','#ADFF2F','#00FFFF','#FF69B4','#FFFFFF','#9932CC'];
 let currentColorIndex = 0;
@@ -77,13 +87,32 @@ const transitionSpeed = 0.005;
 let cameraX = 0;
 let cameraY = 0;
 let zoomLevel = 1;
-const focalLength = 300; 
+const focalLength = 300;
 let isDragging = false;
 let lastMouseX = 0;
 let lastMouseY = 0;
 
 // -------------------
-// Funciones Canvas
+// Easter egg
+// -------------------
+let tapCount = 0;
+let secretMode = false;
+
+function triggerSecretMode() {
+    secretMode = true;
+    // Cambiar frases, imágenes, colores
+    phrases = [...secretPhrases];
+    heartImages = [...secretHeartImages];
+    backgroundColors = [...secretBackgroundColors];
+
+    // Cambiar música
+    audioNormal.pause();
+    audioNormal.currentTime = 0;
+    audioSecret.play().catch(e => console.log("Autoplay bloqueado (secreto):", e));
+}
+
+// -------------------
+// Canvas
 // -------------------
 function resizeCanvas() {
     dpr = window.devicePixelRatio || 1;
@@ -109,8 +138,8 @@ function resizeCanvas() {
 
 function drawBackground() {
     const gradient = ctx.createLinearGradient(0, 0, 0, window.innerHeight);
-    gradient.addColorStop(0, "#0a0a23");
-    gradient.addColorStop(1, "#0c0004ff");
+    gradient.addColorStop(0, backgroundColors[0]);
+    gradient.addColorStop(1, backgroundColors[1]);
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
 }
@@ -268,8 +297,36 @@ canvas.addEventListener('mouseup',()=>{isDragging=false; canvas.style.cursor='gr
 canvas.addEventListener('mouseleave',()=>{isDragging=false; canvas.style.cursor='default';});
 
 let touchStartDist = 0;
-canvas.addEventListener('touchstart',(e)=>{if(e.touches.length===1){isDragging=true; lastMouseX=e.touches[0].clientX; lastMouseY=e.touches[0].clientY;} else if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX; const dy=e.touches[0].clientY-e.touches[1].clientY; touchStartDist=Math.sqrt(dx*dx+dy*dy);}}, {passive:false});
-canvas.addEventListener('touchmove',(e)=>{if(e.touches.length===1&&isDragging){const dx=e.touches[0].clientX-lastMouseX; const dy=e.touches[0].clientY-lastMouseY; cameraX-=dx/zoomLevel; cameraY-=dy/zoomLevel; lastMouseX=e.touches[0].clientX; lastMouseY=e.touches[0].clientY;}else if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX; const dy=e.touches[0].clientY-e.touches[1].clientY; const newDist=Math.sqrt(dx*dx+dy*dy); if(touchStartDist>0){const scaleAmount=(newDist-touchStartDist)*0.005; zoomLevel=Math.max(0.1,Math.min(zoomLevel+scaleAmount,5));} touchStartDist=newDist;}}, {passive:false});
+canvas.addEventListener('touchstart',(e)=>{ 
+    if(e.touches.length===1){
+        isDragging=true; lastMouseX=e.touches[0].clientX; lastMouseY=e.touches[0].clientY;
+        tapCount++;
+        if (tapCount >= 12 && !secretMode) triggerSecretMode();
+    } else if(e.touches.length===2){
+        const dx=e.touches[0].clientX-e.touches[1].clientX; 
+        const dy=e.touches[0].clientY-e.touches[1].clientY; 
+        touchStartDist=Math.sqrt(dx*dx+dy*dy);
+    }
+}, {passive:false});
+
+canvas.addEventListener('touchmove',(e)=>{
+    if(e.touches.length===1&&isDragging){
+        const dx=e.touches[0].clientX-lastMouseX; 
+        const dy=e.touches[0].clientY-lastMouseY; 
+        cameraX-=dx/zoomLevel; cameraY-=dy/zoomLevel; 
+        lastMouseX=e.touches[0].clientX; lastMouseY=e.touches[0].clientY;
+    }else if(e.touches.length===2){
+        const dx=e.touches[0].clientX-e.touches[1].clientX; 
+        const dy=e.touches[0].clientY-e.touches[1].clientY; 
+        const newDist=Math.sqrt(dx*dx+dy*dy); 
+        if(touchStartDist>0){
+            const scaleAmount=(newDist-touchStartDist)*0.005; 
+            zoomLevel=Math.max(0.1,Math.min(zoomLevel+scaleAmount,5));
+        } 
+        touchStartDist=newDist;
+    }
+}, {passive:false});
+
 canvas.addEventListener('touchend',()=>{isDragging=false; touchStartDist=0;});
 
 window.addEventListener('resize', resizeCanvas);
