@@ -7,13 +7,9 @@ const ctx = canvas.getContext('2d');
 const audio = document.getElementById('miAudio');
 audio.volume = 0.5; 
 audio.loop = true;
-let audioPlaying = false;
 
 function playAudio() {
-    if (!audioPlaying) {
-        audio.play().catch(e => console.log("Autoplay bloqueado:", e));
-        audioPlaying = true;
-    }
+    audio.play().catch(e => console.log("Autoplay bloqueado:", e));
     window.removeEventListener('click', playAudio);
     window.removeEventListener('touchstart', playAudio);
 }
@@ -54,16 +50,16 @@ const shootingStars = [];
 const fallingElements = [];
 
 const phrases = [
-    "encontraste este secreto 🤭",
-    "en mi mundo solo eres tú 🌎❤️",
-    "cada día te admiro más 🌟",
-    "26 de septiembre de 2024 📅",
-    "estoy muy orgulloso de ti 🥰",
-    "nuestro amor es infinito ♾️💖",
-    "me pierdo en tus abrazos 🤗",
-    "cada día contigo es mágico ✨",
-    "tú y yo contra el mundo 💪🌍",
-    "mi corazón es tuyo 💘"
+    "✅ Encontraste este secreto 🤭",
+    "✅ En mi mundo solo eres tú 💖",
+    "✅ 26 de septiembre de 2024 📅",
+    "✅ Eres increíble y única 🌟",
+    "✅ Cada día me sorprendes 😍",
+    "✅ Estoy muy orgulloso de ti 🥰",
+    "✅ Siempre pienso en ti 💭",
+    "✅ Contigo todo es mejor 🌈",
+    "✅ Nunca dejes de sonreír 😁",
+    "✅ Gracias por ser como eres 🙏"
 ];
 
 const images = [
@@ -71,14 +67,14 @@ const images = [
 ];
 
 const heartImages = [
-    '11.png','12.png','13.png','14.png','15.png','16.png','17.png','18.png','19.png','20.png','21.png','22.png','23.png'
+    '1.png','2.png','3.png','4.png','5.png','6.png','7.png','8.png','9.png','10.png'
 ];
 
 const textColorsCycle = ['#FFD700','#FFA500','#ADFF2F','#00FFFF','#FF69B4','#FFFFFF','#9932CC'];
 let currentColorIndex = 0;
 let nextColorIndex = 1;
 let transitionProgress = 0;
-const transitionSpeed = 0.002; // transición más lenta
+const transitionSpeed = 0.005;
 
 let cameraX = 0;
 let cameraY = 0;
@@ -115,8 +111,8 @@ function resizeCanvas() {
 
 function drawBackground() {
     const gradient = ctx.createLinearGradient(0, 0, 0, window.innerHeight);
-    gradient.addColorStop(0, "#FFA500"); // naranja
-    gradient.addColorStop(1, "#FF8C00"); // naranja oscuro
+    gradient.addColorStop(0, "#FFA500"); // Fondo naranja
+    gradient.addColorStop(1, "#FFB733");
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
 }
